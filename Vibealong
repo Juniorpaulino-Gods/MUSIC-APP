@@ -1,0 +1,750 @@
+import React, { useState, useEffect } from 'react';
+import { Car, Music, User, MapPin, Clock, Star, Share2, Play, Pause, Volume2, Users, Settings, LogOut, Phone, MessageCircle } from 'lucide-react';
+
+const RideHailingApp = () => {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('ride');
+  const [loginPlatform, setLoginPlatform] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentSong, setCurrentSong] = useState(null);
+  const [rideStatus, setRideStatus] = useState('idle'); // idle, searching, matched, riding
+  const [selectedPlatform, setSelectedPlatform] = useState('uber');
+  const [activePlaylist, setActivePlaylist] = useState('shared'); // shared, personal
+  const [connectedAccounts, setConnectedAccounts] = useState([]);
+  const [activeAccounts, setActiveAccounts] = useState([]);
+  const [syncMode, setSyncMode] = useState('single'); // single, dual, multi
+
+  // Mock data
+  const platforms = [
+    { id: 'uber', name: 'Uber', color: 'bg-black', icon: '馃殫' },
+    { id: 'lyft', name: 'Lyft', color: 'bg-pink-500', icon: '馃殭' },
+    { id: 'bolt', name: 'Bolt', color: 'bg-green-500', icon: '鈿�' },
+    { id: 'ola', name: 'Ola', color: 'bg-yellow-500', icon: '馃浐' },
+    { id: 'grab', name: 'Grab', color: 'bg-green-600', icon: '馃弽锔�' }
+  ];
+
+  const playlist = [
+    { id: 1, title: 'Blinding Lights', artist: 'The Weeknd', duration: '3:20', votes: 15 },
+    { id: 2, title: 'Levitating', artist: 'Dua Lipa', duration: '3:23', votes: 12 },
+    { id: 3, title: 'Good 4 U', artist: 'Olivia Rodrigo', duration: '2:58', votes: 8 },
+    { id: 4, title: 'Stay', artist: 'The Kid LAROI & Justin Bieber', duration: '2:21', votes: 6 }
+  ];
+
+  const personalPlaylist = [
+    { id: 5, title: 'Bohemian Rhapsody', artist: 'Queen', duration: '5:55', plays: 47, liked: true },
+    { id: 6, title: 'Shape of You', artist: 'Ed Sheeran', duration: '3:53', plays: 23, liked: true },
+    { id: 7, title: 'Watermelon Sugar', artist: 'Harry Styles', duration: '2:54', plays: 31, liked: false },
+    { id: 8, title: 'drivers license', artist: 'Olivia Rodrigo', duration: '4:02', plays: 19, liked: true },
+    { id: 9, title: 'Anti-Hero', artist: 'Taylor Swift', duration: '3:20', plays: 38, liked: true },
+    { id: 10, title: 'As It Was', artist: 'Harry Styles', duration: '2:47', plays: 42, liked: false },
+    { id: 11, title: 'Heat Waves', artist: 'Glass Animals', duration: '3:58', plays: 29, liked: true },
+    { id: 12, title: 'Bad Habit', artist: 'Steve Lacy', duration: '3:51', plays: 16, liked: false }
+  ];
+
+  const recentlyPlayed = [
+    { id: 13, title: 'Flowers', artist: 'Miley Cyrus', duration: '3:20', lastPlayed: '2 hours ago' },
+    { id: 14, title: 'Unholy', artist: 'Sam Smith ft. Kim Petras', duration: '2:36', lastPlayed: '1 day ago' },
+    { id: 15, title: 'Calm Down', artist: 'Rema & Selena Gomez', duration: '3:59', lastPlayed: '2 days ago' }
+  ];
+
+  const mockRide = {
+    driver: 'Alex Johnson',
+    rating: 4.9,
+    car: 'Toyota Camry',
+    plate: 'ABC-123',
+    eta: '3 min',
+    fare: '$12.50'
+  };
+
+  const handleLogin = (platform) => {
+    setCurrentUser({
+      name: 'John Doe',
+      email: 'john.doe@email.com',
+      platform: platform,
+      rating: 4.8,
+      rides: 247
+    });
+    setLoginPlatform('');
+    // Initialize with some connected accounts
+    setConnectedAccounts([
+      { id: 'spotify', name: 'Spotify', connected: true, avatar: '馃幍' },
+      { id: 'apple', name: 'Apple Music', connected: false, avatar: '馃崕' },
+      { id: 'youtube', name: 'YouTube Music', connected: false, avatar: '馃摵' }
+    ]);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setRideStatus('idle');
+    setActiveTab('ride');
+  };
+
+  const togglePlayback = (song) => {
+    if (currentSong?.id === song.id) {
+      setIsPlaying(!isPlaying);
+    } else {
+      setCurrentSong(song);
+      setIsPlaying(true);
+    }
+  };
+
+  const connectMusicAccount = (accountId) => {
+    setConnectedAccounts(prev => 
+      prev.map(acc => 
+        acc.id === accountId ? { ...acc, connected: !acc.connected } : acc
+      )
+    );
+  };
+
+  const toggleActiveAccount = (accountId) => {
+    setActiveAccounts(prev => {
+      const isActive = prev.includes(accountId);
+      if (isActive) {
+        return prev.filter(id => id !== accountId);
+      } else {
+        return [...prev, accountId];
+      }
+    });
+  };
+
+  const requestRide = () => {
+    setRideStatus('searching');
+    setTimeout(() => setRideStatus('matched'), 2000);
+  };
+
+  const LoginScreen = () => (
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-teal-500 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="bg-gradient-to-r from-purple-500 to-blue-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Music className="text-white text-2xl" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">RideBeats</h1>
+          <p className="text-gray-600">Share music, share rides</p>
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-center mb-4">Choose Your Platform</h2>
+          {platforms.map(platform => (
+            <button
+              key={platform.id}
+              onClick={() => handleLogin(platform.name)}
+              className={`w-full ${platform.color} text-white p-4 rounded-xl hover:opacity-90 transition-all transform hover:scale-105 flex items-center justify-center space-x-3`}
+            >
+              <span className="text-2xl">{platform.icon}</span>
+              <span className="font-semibold">Login with {platform.name}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500">
+            By continuing, you agree to our Terms of Service and Privacy Policy
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const RideTab = () => (
+    <div className="space-y-6">
+      {/* Platform Selection */}
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        <h3 className="font-semibold mb-3">Select Platform</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {platforms.map(platform => (
+            <button
+              key={platform.id}
+              onClick={() => setSelectedPlatform(platform.id)}
+              className={`p-3 rounded-lg border-2 transition-all ${
+                selectedPlatform === platform.id 
+                  ? `${platform.color} text-white border-transparent` 
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <span>{platform.icon}</span>
+                <span className="font-medium">{platform.name}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Location Input */}
+      <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
+        <div className="flex items-center space-x-3">
+          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+          <input 
+            type="text" 
+            placeholder="Pickup location"
+            className="flex-1 p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            defaultValue="Current Location"
+          />
+        </div>
+        <div className="flex items-center space-x-3">
+          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+          <input 
+            type="text" 
+            placeholder="Where to?"
+            className="flex-1 p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Ride Status */}
+      {rideStatus === 'idle' && (
+        <button 
+          onClick={requestRide}
+          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-xl font-semibold text-lg hover:shadow-lg transition-all transform hover:scale-105"
+        >
+          Request Ride
+        </button>
+      )}
+
+      {rideStatus === 'searching' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full mx-auto mb-3"></div>
+          <p className="text-yellow-800 font-medium">Finding your ride...</p>
+        </div>
+      )}
+
+      {rideStatus === 'matched' && (
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-green-600">Driver Found!</h3>
+            <span className="text-sm text-gray-500">ETA: {mockRide.eta}</span>
+          </div>
+          
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+              <User className="text-gray-600" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium">{mockRide.driver}</h4>
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                <span>{mockRide.rating}</span>
+                <span>鈥�</span>
+                <span>{mockRide.car}</span>
+                <span>鈥�</span>
+                <span>{mockRide.plate}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-semibold">{mockRide.fare}</p>
+            </div>
+          </div>
+
+          <div className="flex space-x-3">
+            <button className="flex-1 bg-blue-500 text-white p-3 rounded-lg flex items-center justify-center space-x-2">
+              <Phone className="w-4 h-4" />
+              <span>Call</span>
+            </button>
+            <button className="flex-1 bg-gray-500 text-white p-3 rounded-lg flex items-center justify-center space-x-2">
+              <MessageCircle className="w-4 h-4" />
+              <span>Message</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const MusicTab = () => (
+    <div className="space-y-6">
+      {/* Current Playing */}
+      {currentSong && (
+        <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex-1">
+              <h3 className="font-semibold">{currentSong.title}</h3>
+              <p className="text-purple-100">{currentSong.artist}</p>
+              {activeAccounts.length > 1 && (
+                <div className="flex items-center space-x-2 mt-2">
+                  <span className="text-xs text-purple-200">Playing on:</span>
+                  {activeAccounts.map(accountId => {
+                    const account = connectedAccounts.find(acc => acc.id === accountId);
+                    return account ? (
+                      <span key={accountId} className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full">
+                        {account.avatar} {account.name}
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+              )}
+            </div>
+            <button 
+              onClick={() => togglePlayback(currentSong)}
+              className="bg-white bg-opacity-20 p-3 rounded-full hover:bg-opacity-30 transition-all"
+            >
+              {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+            </button>
+          </div>
+          <div className="w-full bg-white bg-opacity-20 rounded-full h-2">
+            <div className="bg-white h-2 rounded-full w-1/3"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Music Account Management */}
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        <h3 className="font-semibold mb-4">Music Accounts</h3>
+        
+        {/* Sync Mode Selection */}
+        <div className="mb-4">
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setSyncMode('single')}
+              className={`flex-1 py-2 px-3 text-center rounded-md font-medium transition-all text-sm ${
+                syncMode === 'single' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Single Play
+            </button>
+            <button
+              onClick={() => setSyncMode('dual')}
+              className={`flex-1 py-2 px-3 text-center rounded-md font-medium transition-all text-sm ${
+                syncMode === 'dual' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Dual Sync
+            </button>
+            <button
+              onClick={() => setSyncMode('multi')}
+              className={`flex-1 py-2 px-3 text-center rounded-md font-medium transition-all text-sm ${
+                syncMode === 'multi' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Multi Sync
+            </button>
+          </div>
+        </div>
+
+        {/* Connected Accounts */}
+        <div className="space-y-3">
+          {connectedAccounts.map(account => (
+            <div key={account.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">{account.avatar}</span>
+                <div>
+                  <h4 className="font-medium">{account.name}</h4>
+                  <p className="text-xs text-gray-600">
+                    {account.connected ? 'Connected' : 'Not connected'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {account.connected && syncMode !== 'single' && (
+                  <button
+                    onClick={() => toggleActiveAccount(account.id)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                      activeAccounts.includes(account.id)
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    {activeAccounts.includes(account.id) ? 'Active' : 'Inactive'}
+                  </button>
+                )}
+                <button
+                  onClick={() => connectMusicAccount(account.id)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                    account.connected
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                      : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                  }`}
+                >
+                  {account.connected ? 'Disconnect' : 'Connect'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {syncMode !== 'single' && (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-blue-800">
+                {syncMode === 'dual' ? 'Dual Sync Mode' : 'Multi Sync Mode'} Active
+              </span>
+            </div>
+            <p className="text-xs text-blue-600">
+              {activeAccounts.length} account{activeAccounts.length !== 1 ? 's' : ''} will play simultaneously
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Playlist Toggle */}
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="flex bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setActivePlaylist('shared')}
+            className={`flex-1 py-2 text-center rounded-md font-medium transition-all ${
+              activePlaylist === 'shared' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Shared Playlist
+          </button>
+          <button
+            onClick={() => setActivePlaylist('personal')}
+            className={`flex-1 py-2 text-center rounded-md font-medium transition-all ${
+              activePlaylist === 'personal' 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            My Music
+          </button>
+        </div>
+      </div>
+
+      {/* Shared Playlist */}
+      {activePlaylist === 'shared' && (
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Ride Playlist</h3>
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <Users className="w-4 h-4" />
+              <span>4 passengers</span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {playlist.map(song => (
+              <div key={song.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <div className="flex items-center space-x-3">
+                  <button 
+                    onClick={() => togglePlayback(song)}
+                    className={`w-10 h-10 text-white rounded-full flex items-center justify-center transition-all relative ${
+                      syncMode === 'single' 
+                        ? 'bg-blue-500 hover:bg-blue-600' 
+                        : activeAccounts.length > 1
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:shadow-lg'
+                        : 'bg-blue-500 hover:bg-blue-600'
+                    }`}
+                  >
+                    {currentSong?.id === song.id && isPlaying ? 
+                      <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />
+                    }
+                    {syncMode !== 'single' && activeAccounts.length > 1 && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-bold text-white">{activeAccounts.length}</span>
+                      </div>
+                    )}
+                  </button>
+                  <div>
+                    <h4 className="font-medium">{song.title}</h4>
+                    <p className="text-sm text-gray-600">{song.artist} 鈥� {song.duration}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 text-sm text-gray-600">
+                    <span>{song.votes}</span>
+                    <button className="text-blue-500 hover:text-blue-600">
+                      <Star className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <button className="text-gray-400 hover:text-gray-600">
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button className="w-full mt-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white p-3 rounded-lg font-medium hover:shadow-lg transition-all">
+            Add Song to Shared Playlist
+          </button>
+        </div>
+      )}
+
+      {/* Personal Playlist */}
+      {activePlaylist === 'personal' && (
+        <div className="space-y-4">
+          {/* Recently Played */}
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <h3 className="font-semibold mb-4">Recently Played</h3>
+            <div className="space-y-3">
+              {recentlyPlayed.map(song => (
+                <div key={song.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      onClick={() => togglePlayback(song)}
+                      className={`w-8 h-8 text-white rounded-full flex items-center justify-center transition-all ${
+                        syncMode !== 'single' && activeAccounts.length > 1
+                          ? 'bg-gradient-to-r from-green-400 to-blue-400 hover:shadow-md'
+                          : 'bg-gray-400 hover:bg-gray-500'
+                      }`}
+                    >
+                      <Play className="w-3 h-3" />
+                    </button>
+                    <div>
+                      <h4 className="font-medium text-sm">{song.title}</h4>
+                      <p className="text-xs text-gray-600">{song.artist}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-500">{song.lastPlayed}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* My Favorites */}
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">My Favorites</h3>
+              <button className="text-sm text-blue-600 hover:text-blue-700">View All</button>
+            </div>
+            <div className="space-y-3">
+              {personalPlaylist.filter(song => song.liked).slice(0, 4).map(song => (
+                <div key={song.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      onClick={() => togglePlayback(song)}
+                      className={`w-10 h-10 text-white rounded-full flex items-center justify-center transition-all relative ${
+                        syncMode !== 'single' && activeAccounts.length > 1
+                          ? 'bg-gradient-to-r from-pink-500 to-red-500 hover:shadow-lg'
+                          : 'bg-gradient-to-r from-pink-500 to-red-500 hover:shadow-lg'
+                      }`}
+                    >
+                      {currentSong?.id === song.id && isPlaying ? 
+                        <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />
+                      }
+                      {syncMode !== 'single' && activeAccounts.length > 1 && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-bold text-white">{activeAccounts.length}</span>
+                        </div>
+                      )}
+                    </button>
+                    <div>
+                      <h4 className="font-medium">{song.title}</h4>
+                      <p className="text-sm text-gray-600">{song.artist} 鈥� {song.duration}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-500">{song.plays} plays</span>
+                    <button className="text-red-500 hover:text-red-600">
+                      <Star className="w-4 h-4 fill-current" />
+                    </button>
+                    <button className="text-blue-500 hover:text-blue-600">
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* All Songs */}
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">All Songs</h3>
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <span>{personalPlaylist.length} songs</span>
+              </div>
+            </div>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {personalPlaylist.map(song => (
+                <div key={song.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      onClick={() => togglePlayback(song)}
+                      className={`w-10 h-10 text-white rounded-full flex items-center justify-center transition-all relative ${
+                        syncMode !== 'single' && activeAccounts.length > 1
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:shadow-lg'
+                          : 'bg-blue-500 hover:bg-blue-600'
+                      }`}
+                    >
+                      {currentSong?.id === song.id && isPlaying ? 
+                        <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />
+                      }
+                      {syncMode !== 'single' && activeAccounts.length > 1 && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-bold text-white">{activeAccounts.length}</span>
+                        </div>
+                      )}
+                    </button>
+                    <div>
+                      <h4 className="font-medium">{song.title}</h4>
+                      <p className="text-sm text-gray-600">{song.artist} 鈥� {song.duration}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-500">{song.plays} plays</span>
+                    <button 
+                      className={`hover:scale-110 transition-transform ${
+                        song.liked ? 'text-red-500' : 'text-gray-400 hover:text-red-500'
+                      }`}
+                    >
+                      <Star className={`w-4 h-4 ${song.liked ? 'fill-current' : ''}`} />
+                    </button>
+                    <button className="text-blue-500 hover:text-blue-600">
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-3">
+            <button className="bg-gradient-to-r from-green-500 to-teal-500 text-white p-3 rounded-lg font-medium hover:shadow-lg transition-all">
+              Add from Spotify
+            </button>
+            <button className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-3 rounded-lg font-medium hover:shadow-lg transition-all">
+              Share Playlist
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const ProfileTab = () => (
+    <div className="space-y-6">
+      {/* User Info */}
+      <div className="bg-white rounded-xl p-6 shadow-sm">
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
+            {currentUser.name.split(' ').map(n => n[0]).join('')}
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold">{currentUser.name}</h3>
+            <p className="text-gray-600">{currentUser.email}</p>
+            <div className="flex items-center space-x-4 mt-2 text-sm">
+              <div className="flex items-center space-x-1">
+                <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                <span>{currentUser.rating}</span>
+              </div>
+              <span className="text-gray-400">鈥�</span>
+              <span>{currentUser.rides} rides</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-800">Platform</h4>
+            <p className="text-blue-600 font-medium">{currentUser.platform}</p>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-800">Member Since</h4>
+            <p className="text-gray-600">Jan 2023</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Settings */}
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        <h3 className="font-semibold mb-4">Settings</h3>
+        <div className="space-y-3">
+          <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+            <div className="flex items-center space-x-3">
+              <Settings className="w-5 h-5 text-gray-600" />
+              <span>App Settings</span>
+            </div>
+            <span className="text-gray-400">鈥�</span>
+          </button>
+          <button className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+            <div className="flex items-center space-x-3">
+              <Volume2 className="w-5 h-5 text-gray-600" />
+              <span>Music Preferences</span>
+            </div>
+            <span className="text-gray-400">鈥�</span>
+          </button>
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-between p-3 hover:bg-red-50 rounded-lg transition-colors text-red-600"
+          >
+            <div className="flex items-center space-x-3">
+              <LogOut className="w-5 h-5" />
+              <span>Sign Out</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!currentUser) {
+    return <LoginScreen />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="bg-gradient-to-r from-purple-500 to-blue-500 w-10 h-10 rounded-full flex items-center justify-center">
+              <Music className="text-white text-lg" />
+            </div>
+            <h1 className="text-xl font-bold text-gray-800">RideBeats</h1>
+          </div>
+          <div className="text-right">
+            <p className="font-medium text-gray-800">{currentUser.name}</p>
+            <p className="text-sm text-gray-600">{currentUser.platform}</p>
+          </div>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="p-4 pb-20">
+        {activeTab === 'ride' && <RideTab />}
+        {activeTab === 'music' && <MusicTab />}
+        {activeTab === 'profile' && <ProfileTab />}
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+        <div className="flex justify-around">
+          <button
+            onClick={() => setActiveTab('ride')}
+            className={`flex flex-col items-center space-y-1 ${
+              activeTab === 'ride' ? 'text-blue-500' : 'text-gray-400'
+            }`}
+          >
+            <Car className="w-6 h-6" />
+            <span className="text-xs">Ride</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('music')}
+            className={`flex flex-col items-center space-y-1 ${
+              activeTab === 'music' ? 'text-blue-500' : 'text-gray-400'
+            }`}
+          >
+            <Music className="w-6 h-6" />
+            <span className="text-xs">Music</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`flex flex-col items-center space-y-1 ${
+              activeTab === 'profile' ? 'text-blue-500' : 'text-gray-400'
+            }`}
+          >
+            <User className="w-6 h-6" />
+            <span className="text-xs">Profile</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  );
+};
+
+export default RideHailingApp;
